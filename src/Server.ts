@@ -2,45 +2,36 @@ import express, { Express, Response, Request, NextFunction } from 'express'
 import { readFileSync } from 'fs'
 
 import Monster from './Monster'
+import FileBasedMonsterDataProvider from './FileBasedMonsterData'
 import { Battle, BattleResult } from './Battle'
 
+/*
+  Convinient Data bearer class to pass back validation info
+*/
 class ValidationStatus {
   constructor (public isValid: boolean, 
     public statusCode: number, 
     public errorMessage: string,
     public monsters1: Monster[],
     public monsters2: Monster[]) {
-
   }
 }
 
+/*
+  HTTP Web server that provides the API for simulating pokemon battles
+*/
 class Server {
   private is_dev: boolean;
   private app: Express;
-  private monsterDataById: Map<number, Monster>;
+  private _monsterData: Map<number, Monster>;
 
   constructor(public port: number, public node_env: string) {
     this.is_dev = (node_env === 'development');
     this.app = express();
-
-    const dataBuffer = readFileSync('./pokedex.txt');
-    const pokemonData = JSON.parse(dataBuffer.toString());
-
-    this.monsterDataById = new Map(); 
-
-    for (const m of pokemonData.pokemon) {
-      const monster = new Monster(m.id, 
-          m.name,
-          m.type,
-          m.img,
-          m.height,
-          m.weight,
-          m.weaknesses)
-      this.monsterDataById.set(m.id, monster)
-    }
-
-
     this.setErrorMiddleware();
+
+    const dataProvider = new FileBasedMonsterDataProvider();
+    this._monsterData = dataProvider.data;
   }
 
   setErrorMiddleware() {
@@ -87,8 +78,8 @@ class Server {
     for (const id of team1ids) {
       const numId = parseInt(id as string, 10)
       
-      if (!isNaN(numId) && this.monsterDataById.has(numId)) {
-        const m = this.monsterDataById.get(numId) as Monster
+      if (!isNaN(numId) && this._monsterData.has(numId)) {
+        const m = this._monsterData.get(numId) as Monster
         monsters1.push(m)
       } else {
         return new ValidationStatus(false, 400, `invalid id=${id} in team1ids`, [], []);
@@ -97,8 +88,8 @@ class Server {
 
     for (const id of team2ids) {
       const numId = parseInt(id as string, 10)
-      if (!isNaN(numId) && this.monsterDataById.has(numId)) {
-        const m = this.monsterDataById.get(numId) as Monster
+      if (!isNaN(numId) && this._monsterData.has(numId)) {
+        const m = this._monsterData.get(numId) as Monster
         monsters2.push(m)
       } else {
         return new ValidationStatus(false, 400, `invalid id=${id} in team2ids`, [], []);
@@ -108,14 +99,20 @@ class Server {
     return new ValidationStatus(true, 200, 'ok', monsters1, monsters2)
   }
 
+  /*
+  Start serving HTTP content
+  
+  The /battle endpoint using HTTP GET runs a simulated battle and return the result as plain/text by default
+  It requires the query parameters team1ids[] and team2ids[] to be set.
+  - They are numeric IDs of the monster to fight. They must contain valid numeric pokemon IDs.
+  - The lists must be of same length
+  */
   start() {
-    this.app.get('/log', (req: Request, res: Response) => {
-      // TODO implement
-      res.send('root request');
-    });
-
     this.app.get('/battle/', (req: Request, res: Response) => {
-
+      /*
+      if (req.header('accept')?.includes('json')) {
+      }
+      */
       const validationStatus = this.validateTeamIds(req.query.team1ids, req.query.team2ids)
 
       if (!validationStatus.isValid) {
@@ -171,10 +168,13 @@ class Server {
         }
       }
 
-      const winningTeam = winsTeam1 > winsTeam2 ? 1 : 2;
-      const wins = winsTeam1 > winsTeam2 ? winsTeam1 : winsTeam2;
-      const losses = winsTeam1 < winsTeam2 ? winsTeam1 : winsTeam2;
-      responseText += `\nTeam ${winningTeam} has WON (${wins} vs ${losses})\n`
+      if (winsTeam1 > winsTeam2) {
+        responseText += `\nTeam 1 has WON (${winsTeam1} vs ${winsTeam2})\n`
+      } else if (winsTeam2 > winsTeam1) {
+        responseText += `\nTeam 2 has WON (${winsTeam2} vs ${winsTeam1})\n`
+      } else {
+        responseText += "It's a DRAW!"
+      }
 
       res.set('Content-Type', 'text/plain');
       res.send(responseText)
