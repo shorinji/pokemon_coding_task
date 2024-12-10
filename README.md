@@ -15,7 +15,7 @@ My application provides all of the above and also
 
 - Proper validation of input query parameters
 - Scripts to build and run the application as a Docker container 
-- File-based data backend with a clean interface ready to be extended for other storage
+- File-based data backend with a simple inheritance interface, ready to be extended for other storage
 - Developer-friendly error messages, easy to disable in production
 - Text based test endpoint of the backend
 

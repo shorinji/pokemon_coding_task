@@ -2,7 +2,7 @@ import express, { Express, Response, Request, NextFunction } from 'express'
 import { readFileSync } from 'fs'
 
 import Monster from './Monster'
-import FileBasedMonsterDataProvider from './FileBasedMonsterData'
+import { MonsterDataProvider, FileBasedMonsterDataProvider } from './MonsterDataProviders'
 import { Battle, BattleResult } from './Battle'
 
 /*
@@ -30,7 +30,7 @@ class Server {
     this.app = express();
     this.setErrorMiddleware();
 
-    const dataProvider = new FileBasedMonsterDataProvider();
+    const dataProvider: MonsterDataProvider = new FileBasedMonsterDataProvider();
     this._monsterData = dataProvider.data;
   }
 
