@@ -35,6 +35,19 @@ To start in development watch mode, type
 
     > npm run dev
 
+To build a docker image use the provided bash scripts
+
+    > ./build_docker.sh
+    ...
+
+To then start the container type
+
+    > ./run_docker.sh
+
+This starts the container in the background. To end it, type
+
+    > ./stop_docker.sh
+
 The server starts on port 3000 by default.
 
 The screenshot below shows running the url
@@ -54,3 +67,13 @@ To see the exact log of how each battle was fought, look in the terminal running
 ![screenshot](screenshot_log.png)
 
 # Future improvements
+
+The big one would be to separate client from server, and make the server only send JSON data to the client instead of plain text like today. The client could be a separate React application.
+
+If this was to be a proper game, user accounts and data would need to be set up.
+
+Probably get in some more faithful combat mechanics.
+
+From a server perspective, server logs would need more proper management, and perhaps stored in json for Elastic etc.
+
+The battle endpoint has not been load tested, and there is currently no limit to the team sizes which could overspend the server's resources.
